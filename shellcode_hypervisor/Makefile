@@ -3,9 +3,16 @@ ifndef PS5_PAYLOAD_SDK
 endif
 
 # 1. Variables
+ifeq ($(shell uname -m),aarch64)
+CC      = x86_64-linux-gnu-gcc
+LD      = x86_64-linux-gnu-ld
+OBJCOPY = x86_64-linux-gnu-objcopy
+else
 CC      = gcc
 LD      = ld
-CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -I$(PS5_PAYLOAD_SDK)/target/include
+OBJCOPY = objcopy
+endif
+CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -m64 -I$(PS5_PAYLOAD_SDK)/target/include
 LDFLAGS = -T linker.ld
 TARGET  = shellcode_hypervisor.elf
 TEXT_BIN = shellcode_hypervisor.bin
@@ -23,7 +30,7 @@ $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TEXT_BIN): $(TARGET)
-	objcopy -O binary -j .shell_code $(TARGET) $(TEXT_BIN)
+	$(OBJCOPY) -O binary -j .shell_code $(TARGET) $(TEXT_BIN)
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(TEXT_BIN) $(dump)

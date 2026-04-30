@@ -156,6 +156,14 @@ git clone https://github.com/ps5-linux/ps5-linux-loader
 cd ps5-linux-loader
 make
 ```
+## Compiling on ARM64 Linux
+
+Install the x86-64 cross-compilation tools before:
+
+```bash
+sudo apt install gcc-x86-64-linux-gnu binutils-x86-64-linux-gnu
+```
+
 
 Find your PS5 IP at `Settings → Network → View Connection Status`.
 
@@ -171,6 +179,7 @@ If the LED is white, but you still have a blackscreen then:
 - Try setting `amdgpu.force_1080p=1` in `cmdline.txt` in the FAT32 partition of the USB drive.
 
 If none of this helps, please report the issue in our [Discord server](https://discord.gg/PeMGVB7BAm) and provide your EDID information.
+
 
 ## First Boot
 
