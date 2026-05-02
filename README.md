@@ -45,6 +45,17 @@ To run *ps5-linux*, you need some required and optional hardwares:
 
 #### Linux/macOS:
 
+Install docker:
+
+```bash
+sudo apt update
+sudo apt install docker.io -y
+sudo service docker start
+sudo usermod -aG docker $USER
+```
+
+Restart the terminal.
+
 ```bash
 git clone https://github.com/ps5-linux/ps5-linux-image
 cd ps5-linux-image
@@ -99,36 +110,7 @@ sudo dd if=output/ps5-ubuntu2604.img of=/dev/sdX bs=4M status=progress conv=fsyn
 
 #### Windows (Balena Etcher):
 
-Download Balena Etcher, select the .img file, select your USB drive, click Flash.
-
-#### Windows (WSL2 + usbipd):
-
-Install usbipd in PowerShell as administrator:
-
-```bash
-winget install usbipd
-```
-
-Plug in your USB drive, list devices and find the busid of your drive:
-
-```bash
-usbipd list
-```
-
-Bind and attach it to WSL (replace 5-3 with your busid):
-
-```bash
-usbipd bind --busid 5-3
-usbipd attach --busid 5-3 --wsl
-```
-
-Then flash from WSL:
-
-```bash
-lsblk  # confirm the drive appeared, e.g. /dev/sdb
-sudo wipefs -a /dev/sdX
-sudo dd if=output/ps5-ubuntu2604.img of=/dev/sdX bs=4M status=progress
-```
+Download [Balena Etcher](https://etcher.balena.io/), select the .img file, select your USB drive, click Flash.
 
 ### 3. Plug the USB drive into your PS5
 
@@ -164,7 +146,6 @@ Install the x86-64 cross-compilation tools before:
 sudo apt install gcc-x86-64-linux-gnu binutils-x86-64-linux-gnu
 ```
 
-
 Find your PS5 IP at `Settings → Network → View Connection Status`.
 
 ```bash
@@ -175,9 +156,9 @@ If all is successful, the payload will automatically go into rest mode. Wait unt
 
 If the LED is white, but you still have a blackscreen then:
 
+- Try removing `video=DP-1:1920x1080@60` line in cmdline.txt.
 - Try different monitors or capture cards, ideally with different resolutions. Currently, some monitors have issues.
 - Try setting `amdgpu.force_1080p=1` in `cmdline.txt` in the FAT32 partition of the USB drive.
-- Try removing `video=DP-1:1920x1080@60` line in cmdline.txt.
 
 If none of this helps, please report the issue in our [Discord server](https://discord.gg/PeMGVB7BAm) and provide your EDID information.
 
@@ -202,7 +183,9 @@ Then, there are certain settings and commands we recommend doing:
 4. Clone our [ps5-linux-tools](https://github.com/ps5-linux/ps5-linux-tools):
 
    ```bash
+   sudo apt install zlib1g-dev
    git clone https://github.com/ps5-linux/ps5-linux-tools
+   make
    ```
 
 ## M.2 installation
@@ -213,9 +196,7 @@ You can use a M.2 SSD exclusively for Linux (which means you cannot use it for P
 2. Boot Linux on your PS5 and run these commands to initialize your M.2:
 
 ```bash
-sudo apt install zlib1g-dev
 cd ps5-linux-tools
-gcc -o m2_init m2_init.c -lz
 sudo ./m2_init
 ```
 
@@ -245,7 +226,6 @@ We provide a simple tool that allows you to boost your CPU to 3500Mhz and GPU to
 
 ```bash
 cd ps5-linux-tools
-gcc -o ps5_control ps5_control.c
 sudo ./ps5_control --fan on
 sudo ./ps5_control --boost on
 ```
@@ -258,7 +238,6 @@ Always turn on fan when your turn on boost, as this is what the official PS5 OS 
   - A: No, this is a soft-mod. You need to re-run the exploit in order to boot into Linux.
 - Q: Can I put Linux into standby and resume?
   - A: No, this is not supported. We may however add a shutdown feature that puts your PS5 into rest-mode allowing you to relaunch Linux when powering up again.
-
 - Q: Can I continue using my PS5 if I install Linux?
   - A: Yes, the internal SSD is not modified
 - Q: Can I use the PS5's NIC/WLAN module in Linux?
