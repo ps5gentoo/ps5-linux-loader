@@ -217,8 +217,7 @@ int stage4_force_vmcb_reload(void) {
 int stage5_remove_xotext(void) {
   DEBUG_PRINT("\nHV-Defeat [stage5] xotext removal\n");
 
-  uint64_t start =
-      ktext - 0xF0000; // Include first pages where fun stuff is located
+  uint64_t start = ktext;
   uint64_t end = kdata;
   int n __attribute__((unused)) = 0;
 
