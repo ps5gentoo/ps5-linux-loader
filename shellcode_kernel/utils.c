@@ -31,7 +31,6 @@ uint64_t va_to_pa_kernel(uint64_t va) {
 
 // Source: PS5_kldload
 uint64_t va_to_pa_custom(uint64_t va, uint64_t cr3_custom) {
-
   uint64_t table_phys = cr3_custom & 0xFFFFFFFF;
 
   for (int level = 0; level < 4; level++) {

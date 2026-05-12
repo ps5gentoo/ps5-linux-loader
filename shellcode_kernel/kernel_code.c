@@ -96,7 +96,6 @@ static int mp3_enable_output(int be, int mode) {
 }
 
 static void patch_hv(void) {
-
   // Install identity map for HV
   // HV Shellcode 1 it's updating CR3
   uint64_t identity_cr3 = cave_hv_paging; // P, RW, US=0
@@ -156,7 +155,6 @@ static void patch_hv(void) {
 }
 
 void boot_linux(void) {
-
   patch_hv();
 
   memcpy((void *)PHYS_TO_DMAP(0xC0000), (void *)g_vbios, 0x10000);

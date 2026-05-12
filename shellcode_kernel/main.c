@@ -12,7 +12,6 @@ shellcode_kernel_args args = {
 // acpi_wakeup_machdep
 __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
                                                        uint64_t add2) {
-
   // We will do main checks on .text only with a reference to .data to avoid
   // fixed offsets first After NPTs are disabled, we can continue nornmally
   // using all the variables in .data that are embedded in shellcode
@@ -69,7 +68,6 @@ __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
   ret = ((uint64_t(*)(void))args_ptr->fun_hv_iommu_wait_completion)();
 
   if (ret == 0) {
-
     putc_uart(args_ptr->dmap_base, 'I');
     putc_uart(args_ptr->dmap_base, 'O');
     putc_uart(args_ptr->dmap_base, 'M');
@@ -85,7 +83,6 @@ __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
 
     // Allow R/W on HV and Kernel area
     if (tmr_disable(args_ptr->dmap_base)) {
-
       putc_uart(args_ptr->dmap_base, 'T');
       putc_uart(args_ptr->dmap_base, 'M');
       putc_uart(args_ptr->dmap_base, 'R');
@@ -276,7 +273,6 @@ __attribute__((noinline, optimize("O0"))) int tmr_disable(uint64_t dmap) {
 }
 
 void init_global_pointers(volatile shellcode_kernel_args *args_ptr) {
-
   memcpy(&args, (void *)args_ptr, sizeof(args));
 
   printf = (void (*)(const char *, ...))args.fun_printf;

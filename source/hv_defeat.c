@@ -187,7 +187,6 @@ void handle_sigill(int sig) {
 }
 
 int stage4_force_vmcb_reload(void) {
-
   int ret = 0;
 
   auto old_handler = signal(SIGILL, handle_sigill);
@@ -239,7 +238,6 @@ int stage5_remove_xotext(void) {
 }
 
 int stage6_kernel_pmap_invalidate_all(void) {
-
   DEBUG_PRINT("HV-Defeat [stage6] invalidate paging entries\n");
 
   static uint64_t two_zero_pages[PAGE_SIZE * 2] = {0};

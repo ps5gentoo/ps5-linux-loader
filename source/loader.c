@@ -21,7 +21,6 @@
 #define MINI_SYSCORE_PID 1
 
 uint64_t alloc_page(void) {
-
   void *page = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
@@ -64,7 +63,6 @@ void install_page(uintptr_t pml4, vm_offset_t va, vm_paddr_t pa, int bits) {
 }
 
 void pte_store(uintptr_t ptep, uint64_t pte) {
-
   static_assert((PAGE_SIZE % 0x1000) == 0,
                 "PAGE_SIZE should be a multiple of 0x1000");
 
@@ -123,7 +121,6 @@ static const char *get_overridden_filename(const char *filename) {
 }
 
 long find_and_get_size_of_file(const char *filename, char *found_path) {
-
   char full_path[256];
   struct stat st;
 
@@ -131,7 +128,6 @@ long find_and_get_size_of_file(const char *filename, char *found_path) {
   int num_paths = sizeof(file_paths) / sizeof(file_paths[0]);
 
   for (int i = 0; i < num_paths; i++) {
-
     snprintf(full_path, sizeof(full_path), "%s%s", file_paths[i], filename);
 
     if (stat(full_path, &st) == 0) {
@@ -151,7 +147,6 @@ int find_and_read_file(const char *filename, void *buf, size_t bufsize) {
   int num_paths = sizeof(file_paths) / sizeof(file_paths[0]);
 
   for (int i = 0; i < num_paths; i++) {
-
     snprintf(full_path, sizeof(full_path), "%s%s", file_paths[i], filename);
 
     if (stat(full_path, &st) == 0) {

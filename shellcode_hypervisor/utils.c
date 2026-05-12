@@ -26,7 +26,6 @@ uint8_t hex_val[17];
 
 __attribute__((noinline, optimize("O0"))) uint8_t *
 u64_to_hex_custom(uint64_t val, uint8_t *dest) {
-
   const uint8_t hex_chars[] = "0123456789abcdef";
   dest[16] = '\0';
 

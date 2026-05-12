@@ -93,7 +93,6 @@ uint64_t va_to_pa_kernel(uint64_t va) { return va_to_pa_custom(va, cr3); }
 
 // Source: PS5_kldload
 uint64_t va_to_pa_custom(uint64_t va, uint64_t cr3_custom) {
-
   uint64_t table_phys = cr3_custom & 0xFFFFFFFF;
 
   for (int level = 0; level < 4; level++) {
@@ -123,7 +122,6 @@ uint64_t pa_to_dmap(uint64_t pa) { return dmap + pa; }
 
 // Set RW bit on all levels if needed and remove eXecute Only bit
 void page_chain_set_rw(uint64_t va) {
-
   uint64_t table_phys = cr3;
 
   for (int level = 0; level < 4; level++) {
@@ -164,7 +162,6 @@ void page_chain_set_rw(uint64_t va) {
 
 // Remove Global bit on last level
 uint64_t page_remove_global(uint64_t va) {
-
   uint64_t table_phys = cr3;
 
   for (int level = 0; level < 4; level++) {
@@ -188,7 +185,6 @@ uint64_t page_remove_global(uint64_t va) {
     }
 
     if (level == 3) {
-
       PAGE_CLEAR_G(entry);
       kwrite(entry_va, &entry, sizeof(entry));
 

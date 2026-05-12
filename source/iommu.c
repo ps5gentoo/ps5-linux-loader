@@ -37,7 +37,6 @@ int iommu_init(void) {
 
 // Submit a single 16-byte command and wait for completion
 void iommu_submit_cmd(const void *cmd) {
-
   if (iommu->mmio_va == 0)
     iommu_init();
 

@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 int main(void) {
-
   if (setup_env()) {
     notify("Something went wrong while initiating.\nPlease make sure your fw "
            "is supported.");
@@ -56,7 +55,6 @@ int setup_env(void) {
 }
 
 int prepare_resume(void) {
-
   if (env_offset.KERNEL_CODE_CAVE == 0) {
     printf("Error: missing code cave offset\n");
     return -1;
