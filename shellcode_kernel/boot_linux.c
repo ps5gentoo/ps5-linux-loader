@@ -12,11 +12,11 @@
 #define TRANSMITTER_CONTROL_ENABLE 1
 #define TRANSMITTER_CONTROL_SET_VOLTAGE_AND_PREEMPASIS 11
 
-int (*transmitter_control)(int cmd, void *control) = NULL;  // Filled by main.c
-int (*mp3_initialize)(int vmid) = NULL;                     // Filled by main.c
-int (*mp3_invoke)(int cmd_id, void *req, void *rsp) = NULL; // Filled by main.c
+int (*transmitter_control)(int cmd, void *control) = NULL;
+int (*mp3_initialize)(int vmid) = NULL;
+int (*mp3_invoke)(int cmd_id, void *req, void *rsp) = NULL;
 
-uint64_t g_vbios; // Filled by main.c
+uint64_t g_vbios;
 
 typedef struct {
   uint8_t lanenum;
@@ -88,11 +88,10 @@ static int mp3_enable_output(int be, int mode) {
 
 static void patch_hv(void) {
   // Install identity map for HV
-  // HV Shellcode 1 it's updating CR3
-  uint64_t identity_cr3 = cave_hv_paging; // P, RW, US=0
+  uint64_t identity_cr3 = cave_hv_paging;
   uint64_t identity_pml4_0 =
       identity_cr3 +
-      0x1003ULL; // P, RW, US=0 - 512GB // offset 0 +0x1000 from PML4
+      0x1003ULL;
   uint64_t l40_l3_addr = PAGE_PA(identity_pml4_0); // addr PML4[0]
   uint64_t identity_pml40_l3[] = {
       0x0000000000000083, // P, RW, US=0 - 0 GB to 1 GB
@@ -161,8 +160,8 @@ void boot_linux(void) {
   // Copy bzImage and initrd into contiguous memory.
   memcpy(&info, (void *)args.linux_info_va, sizeof(struct linux_info));
 
-  uintptr_t bzimage = info.bzimage; // Kernel wrote the VA here
-  uintptr_t initrd = info.initrd;   // Kernel wrote the VA here
+  uintptr_t bzimage = info.bzimage;
+  uintptr_t initrd = info.initrd;
 
   info.bzimage = cave_bzImage;
   info.initrd = cave_bzImage + ALIGN_UP(info.bzimage_size, PAGE_SIZE);

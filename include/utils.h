@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include "offsets.h"
+#include "linux.h"
 #include <ps5/kernel.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -44,6 +45,18 @@ extern uint64_t cr3;              // Defined on utils.c
 extern uint32_t fw;               // Defined on utils.c
 extern uint64_t vmcb_pa[16];      // Defined on hv_defeat.c
 extern struct linux_info linux_i; // Declared on main.c
+
+int setup_env(void);
+
+static inline void kwrite_large(uint64_t ka, void* src, uint64_t len) {
+  uint32_t CHUNK = 0x1000;
+  uint64_t written = 0;
+  while (written < len) {
+    uint32_t n = (len - written > CHUNK) ? CHUNK : (uint32_t)(len - written);
+    kernel_copyin(src + written,  ka + written, n);
+    written += n;
+  }
+}
 
 static inline void kwrite(uint64_t ka, void *src, uint64_t len) {
   kernel_copyin(src, ka, len);

