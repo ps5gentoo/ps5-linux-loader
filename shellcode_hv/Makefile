@@ -1,8 +1,3 @@
-ifndef PS5_PAYLOAD_SDK
-    PS5_PAYLOAD_SDK = /opt/ps5-payload-sdk/
-endif
-
-# 1. Variables
 ifeq ($(shell uname -m),aarch64)
 CC      = x86_64-linux-gnu-gcc
 LD      = x86_64-linux-gnu-ld
@@ -12,8 +7,8 @@ CC      = gcc
 LD      = ld
 OBJCOPY = objcopy
 endif
-CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -m64 -I$(PS5_PAYLOAD_SDK)/target/include
-LDFLAGS = -T linker.ld
+CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -m64
+LDFLAGS = -T linker.ld -Wl,--no-warn-rwx-segments
 TARGET  = shellcode_hv.elf
 TEXT_BIN = shellcode_hv.bin
 dump = shellcode_hv.h

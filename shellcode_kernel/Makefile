@@ -1,8 +1,3 @@
-ifndef PS5_PAYLOAD_SDK
-    PS5_PAYLOAD_SDK = /opt/ps5-payload-sdk/
-endif
-
-
 ifeq ($(shell uname -m),aarch64)
 CC      = x86_64-linux-gnu-gcc
 LD      = x86_64-linux-gnu-ld
@@ -12,15 +7,14 @@ CC      = gcc
 LD      = ld
 OBJCOPY = objcopy
 endif
-CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -m64 -I$(PS5_PAYLOAD_SDK)/target/include
-LDFLAGS = -T linker.ld
+CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -m64
+LDFLAGS = -T linker.ld -Wl,--no-warn-rwx-segments
 TARGET  = shellcode_kernel.elf
 TEXT_BIN = shellcode_kernel.bin
+dump = shellcode_kernel.h
 
 SRC = main.c utils.c boot_linux.c
 OBJ = $(SRC:.c=.o)
-
-dump = shellcode_kernel.h
 
 all: $(dump)
 
@@ -31,7 +25,7 @@ $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TEXT_BIN): $(TARGET)
-	$(OBJCOPY) -O binary -j .text $(TARGET) $(TEXT_BIN)
+	$(OBJCOPY) -O binary -j .shell_code $(TARGET) $(TEXT_BIN)
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(TEXT_BIN) $(dump)

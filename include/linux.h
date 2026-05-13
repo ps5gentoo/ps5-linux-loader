@@ -1,6 +1,7 @@
 #ifndef __LINUX_H__
 #define __LINUX_H__
 
+#include <stdint.h>
 #include <unistd.h>
 
 #define X86_SUBARCH_PS5 5

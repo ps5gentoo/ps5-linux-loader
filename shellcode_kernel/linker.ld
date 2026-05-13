@@ -4,13 +4,13 @@ ENTRY(main)
 SECTIONS
 {
     . = 0x1000; /* 0x1000 to avoid warnings from linker */
-    .text :
+    /* Place our custom header first */
+    .shell_code :
     {
         *(.entry_point)
         *(.text)
         *(.text.*)
-        *(.data)
-        *(.data.*)
+        *(.data*)
         *(.rodata*)
         *(.bss)
         *(.bss.*)
