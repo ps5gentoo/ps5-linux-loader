@@ -124,14 +124,20 @@ The front top Type-A port is USB 2.0 which is slower and thus not recommended.
 
 ### 4. Run the jailbreak exploit
 
-1. Clone https://github.com/idlesauce/umtx2
+1. Clone via: `git clone https://github.com/idlesauce/umtx2`
 2. Configure fakedns via `dns.conf` to point `manuals.playstation.net` to your PCs IP address
-3. Run fake dns: `python fakedns.py -c dns.conf`
-4. Run HTTPS server: `python host.py`
+3. Run fake dns: `sudo python fakedns.py -c dns.conf`
+4. In a different terminal, run HTTPS server: `sudo python host.py`
 5. Go into PS5 advanced network settings and set primary DNS to your PCs IP address and leave secondary at `0.0.0.0`
 6. Go to user manual in settings and accept untrusted certificate prompt, run.
 
 #### 5. Send the payload
+If you're on ARM64 Linux, first install the x86-64 cross-compilation tools before:
+
+```bash
+sudo apt install gcc-x86-64-linux-gnu binutils-x86-64-linux-gnu
+```
+
 Either download [ps5-linux-loader.elf](https://github.com/ps5-linux/ps5-linux-loader/releases/), or install [ps5-payload-sdk](https://github.com/ps5-payload-dev/sdk) and compile it yourself:
 
 ```bash
@@ -140,16 +146,10 @@ cd ps5-linux-loader
 make
 ```
 
-If you're on ARM64 Linux, then additionall install the x86-64 cross-compilation tools before:
+Send the payload with your `$PS5IP` (shown on the page):
 
 ```bash
-sudo apt install gcc-x86-64-linux-gnu binutils-x86-64-linux-gnu
-```
-
-Find your PS5 IP at `Settings → Network → View Connection Status`.
-
-```bash
-socat -t 99999999 - TCP:192.168.178.127:9021 < ps5-linux-loader.elf
+socat -t 99999999 - TCP:$PS5IP:9021 < ps5-linux-loader.elf
 ```
 
 If all is successful, the payload will automatically go into rest mode. Wait until the orange LED stops blinking and becomes static. Only then, press the power button again to boot your PS5 into Linux. If the boot is successful, **the LED should turn white**. If it boots back into PS5 OS, then it's because you pressed the power button too early. Or, you did not enable rest mode features as described above.
@@ -251,6 +251,10 @@ Always turn on fan when your turn on boost, as this is what the official PS5 OS 
 
 ## FAQ
 
+- Q: Will higher >=6.50 firmwares be supported?
+  - A: No.
+- Q: Why can I not use M.2 on 3.xx?
+  - A: Because the PS5 fails to boot with it attached.
 - Q: Can I dual-boot Linux and PS5 OS?
   - A: No, this is a soft-mod. You need to re-run the exploit in order to boot into Linux.
 - Q: Can I put Linux into standby and resume?
@@ -259,8 +263,6 @@ Always turn on fan when your turn on boost, as this is what the official PS5 OS 
   - A: Yes, the internal SSD is not modified
 - Q: Can I use the PS5's NIC/WLAN module in Linux?
   - A: In theory yes, but someone needs to write or adapt drivers to use them.
-- Q: Will higher >=6.50 firmwares be supported?
-  - A: No.
 - Q: Does the DualSense controller work?
   - A: Via a Bluetooth dongle. Built-in Bluetooth is not yet supported.
 - Q: What resolutions and refresh rates are supported?
