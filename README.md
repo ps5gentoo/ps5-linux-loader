@@ -45,6 +45,10 @@ If you reset your PS5 settings or reinstall the FW, you need to reapply these se
 
 ### 1. Get a Linux image
 
+#### Pre-built images
+
+You can download them from [ps5-linux-image](https://github.com/ps5-linux/ps5-linux-image/releases/tag/latest). Recommended is `ps5-ubuntu2604.img.xz`.
+
 #### Linux/macOS:
 
 Install docker:
@@ -265,6 +269,10 @@ sudo ./ps5_control --boost on
 
 Always turn on fan when your turn on boost, as this is what the official PS5 OS does.
 
+## Updating ps5-linux
+
+For any future ps5-linux updates, you can download the `.deb` or `.pkg.tar.zst` on your PS5 from [ps5-linux-patches](https://github.com/ps5-linux/ps5-linux-patches/releases) and install them like normal packages.
+
 ## FAQ
 
 - Q: Will higher >=6.50 firmwares be supported?
@@ -283,7 +291,8 @@ Always turn on fan when your turn on boost, as this is what the official PS5 OS 
   - A: Via a Bluetooth dongle. Built-in Bluetooth is not yet supported.
 - Q: What resolutions and refresh rates are supported?
   - A: 1080p, 1440p and 2160p at 60Hz are broadly supported. 1440p@120Hz has been the only confirmed working on the DELL S3225QC yet. 120Hz or 30Hz may be added in the future.
-
+- Q: After reboot, I get a "Repairing" screen and "Your PS5 wasn't turned off properly." screen. Is that normal?
+  - A: Yes, and it's harmless.
 
 ## Tips and tricks
 
