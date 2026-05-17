@@ -87,6 +87,10 @@ static void e820_memory_setup(struct boot_params *bp) {
     append_e820_table(bp, 0x470000000, 0x87f300000, E820_TYPE_RAM);
     append_e820_table(bp, 0x87f300000, 0x880000000, E820_TYPE_RESERVED);
   }
+
+  for (int i = 0; i < info.n_tmrs; i++) {
+    append_e820_table(bp, info.tmrs[i].start, info.tmrs[i].end, E820_TYPE_RESERVED);
+  }
 }
 
 void boot_linux(void) {

@@ -9,6 +9,22 @@ typedef struct _offset_list {
   uint64_t VMSPACE_VM_VMID;
   uint64_t VMSPACE_VM_PMAP;
   uint64_t DATA_BASE_GVMSPACE;
+  /* Offsets for 5.00-6.02 hv exploit */
+  uint64_t ACPIGBL_FACS;
+  uint64_t IDT;
+  uint64_t COMMON_TSS;
+  uint64_t STOPPED_CPUS;
+  uint64_t FUN_STOP_CPUS;
+  uint64_t FUN_AS_LAPIC_EOI;
+  uint64_t FUN_HV_UNMAP_PT_TMR;
+  uint64_t FUN_MEMCPY;
+  uint64_t GAD_ADD_RSP_28_POP_RBP_RET;
+  uint64_t GAD_IRETQ;
+  uint64_t GAD_POP_RDI_RET;
+  uint64_t GAD_POP_RSI_RET;
+  uint64_t GAD_POP_RDX_RET;
+  uint64_t GAD_POP_RSP_RET;
+  uint64_t GAD_MOV_QWORD_PTR_RDI_RSI_POP_RBP_RET;
   /* Shellcode Kernel */
   uint64_t HOOK_ACPI_WAKEUP_MACHDEP;
   uint64_t KERNEL_CODE_CAVE;
@@ -22,7 +38,6 @@ typedef struct _offset_list {
   uint64_t HV_HANDLE_VMEXIT_PA;
   /* Patches on Kernel */
   uint64_t KERNEL_UART_OVERRIDE;
-  uint64_t KERNEL_DEBUG_PATCH;
   uint64_t KERNEL_CFI_CHECK;
   /* Internal functions to prepare boot */
   uint64_t G_VBIOS;
@@ -43,5 +58,8 @@ extern offset_list off_0402;
 extern offset_list off_0403;
 extern offset_list off_0450;
 extern offset_list off_0451;
+extern offset_list off_0550;
+extern offset_list off_0600;
+extern offset_list off_0602;
 
 #endif

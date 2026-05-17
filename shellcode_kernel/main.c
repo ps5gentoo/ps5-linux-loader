@@ -27,17 +27,18 @@ __attribute__((section(".entry_point"))) uint32_t main(uint64_t add1,
   if ((0x0300 <= args_ptr->fw_version) && (args_ptr->fw_version < 0x0500)) {
     if (hv_defeat_0304(args_ptr))
       return -1;
-    // Now we can R/W on .text
-    init_global_pointers(args_ptr);
-    patch_hv_0304();
   } else if ((0x0500 <= args_ptr->fw_version) &&
              (args_ptr->fw_version < 0x0650)) {
-    // escape_hv_0506();
-    // Now we can R/W on .text
-    // init_global_pointers(args_ptr);
+    // Already escaped.
   } else {
     return 0;
   }
+
+  // Now we can R/W on .text
+  init_global_pointers(args_ptr);
+
+  // Disable CFI to allow smp_rendezvous.
+  *(uint8_t *)args_ptr->kernel_cfi_check = 0xC3;
 
   boot_linux();
   printf("Linux prepared OK\n");

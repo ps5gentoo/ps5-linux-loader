@@ -8,7 +8,6 @@ extern uint32_t (*hv_iommu_set_buffers)(uint64_t cb2_pa, uint64_t cb3_pa,
 extern uint32_t (*hv_iommu_wait_completion)(void);
 
 int hv_defeat_0304(volatile shellcode_kernel_args *args_ptr);
-void patch_hv_0304(void);
 
 // tmr via ecam b0d18f2
 #ifndef ECAM_B0D18F2
@@ -38,6 +37,12 @@ int tmr_disable(uint64_t dmap);
 #define IOMMU_CB_SIZE 0x2000
 #define IOMMU_CB_MASK (IOMMU_CB_SIZE - 1)
 #define IOMMU_CMD_ENTRY_SIZE 0x10
+
+// IOMMU softc field offsets
+#define IOMMU_SC_MMIO_VA 0x40
+#define IOMMU_SC_CB2_PTR 0x78
+#define IOMMU_SC_CB3_PTR 0x80
+#define IOMMU_SC_EB_PTR 0x60b90
 
 // Submit a single 16-byte command and wait for completion
 void iommu_submit_cmd(volatile shellcode_kernel_args *args_ptr, uint64_t *cmd);

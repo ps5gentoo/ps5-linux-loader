@@ -7,7 +7,7 @@ CC      = gcc
 LD      = ld
 OBJCOPY = objcopy
 endif
-CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -m64
+CFLAGS  = -O2 -fno-stack-protector -ffreestanding -nostdlib -fcf-protection=none -mno-sse -mno-sse2 -m64
 LDFLAGS = -T linker.ld -Wl,--no-warn-rwx-segments
 TARGET  = shellcode_kernel.elf
 TEXT_BIN = shellcode_kernel.bin

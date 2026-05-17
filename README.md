@@ -1,6 +1,6 @@
 # ps5-linux
 
-**ps5-linux** leverages a patched HV vulnerability to transform your PS5 Phat console running **3.xx or 4.xx firmwares** (and soon also on **firmware 6.02**) into a highly capable Linux PC, unlocking its full hardware potential for desktop use. Powered by 8 CPU cores (16 threads) at **3.5 GHz** and a GPU at **2.23 GHz**, it provides enough performance to run Steam games and various emulators with impressive fluidity. It supports HDMI 4K60 video and audio output. Furthermore, it allows you to utilize an **M.2 SSD** as a dedicated Linux partition, as well as all USB ports on the console.
+**ps5-linux** leverages a patched HV vulnerability to transform your PS5 Phat console running **3.00-6.02 firmwares** into a highly capable Linux PC, unlocking its full hardware potential for desktop use. Powered by 8 CPU cores (16 threads) at **3.5 GHz** and a GPU at **2.23 GHz**, it provides enough performance to run Steam games and various emulators with impressive fluidity. It supports HDMI 4K60 video and audio output. Furthermore, it allows you to utilize an **M.2 SSD** as a dedicated Linux partition, as well as all USB ports on the console.
 
 ![Alt Text](logo.webp)
 
@@ -10,9 +10,9 @@
 
 - **3.00**, **3.10**, **3.20**, **3.21** without M.2 support
 - **4.00**, **4.02**, **4.03**, **4.50**, **4.51** with M.2 support
-- **Soon: 6.02** with M2 support
-
-Support for 1.xx and 2.xx firmwares may be added in the future, but we will not prioritize this effort.
+- **5.50** with M.2 support
+- **6.00**, **6.02** with M.2 support
+- Support for 1.xx and 2.xx firmwares may be added in the future, but we will not prioritize this effort.
 
 If you want to update to a specific firmware, [download the correct PUP](https://darthsternie.net/ps5-firmwares/) and follow the [official guide](https://www.playstation.com/en-us/support/hardware/reinstall-playstation-system-software-safe-mode) to upgrade your PS5. Obviously you cannot downgrade.
 
@@ -122,7 +122,9 @@ The following USB ports are supported for booting:
 
 The front top Type-A port is USB 2.0 which is slower and thus not recommended.
 
-### 4. Run the jailbreak exploit
+### 4. Run the jailbreak
+
+#### Firmware 3.00-5.50
 
 1. Clone via: `git clone https://github.com/idlesauce/umtx2`
 2. Configure fakedns via `dns.conf` to point `manuals.playstation.net` to your PCs IP address
@@ -131,7 +133,12 @@ The front top Type-A port is USB 2.0 which is slower and thus not recommended.
 5. Go into PS5 advanced network settings and set primary DNS to your PCs IP address and leave secondary at `0.0.0.0`
 6. Go to user manual in settings and accept untrusted certificate prompt, run.
 
-#### 5. Send the payload
+#### Firmware 6.00-6.02
+
+1. Install Y2JB by following https://github.com/Gezine/Y2JB.
+2. Run kernel exploit: `python3 payload_sender.py $PS5IP 50000 payloads/lapse.js`
+
+### 5. Send the payload
 If you're on ARM64 Linux, first install the x86-64 cross-compilation tools before:
 
 ```bash
@@ -200,6 +207,14 @@ Then, there are certain settings and commands we recommend doing:
    git clone https://github.com/ps5-linux/ps5-linux-tools
    cd ps5-linux-tools
    make
+   ```
+
+7. Install the mwifiex driver for the internal WLAN chip:
+
+   ```bash
+   git clone https://github.com/ps5-linux/ps5-linux-mwifiex
+   cd ps5-linux-mwifiex
+   sudo ./install.sh
    ```
 
 ## M.2 installation

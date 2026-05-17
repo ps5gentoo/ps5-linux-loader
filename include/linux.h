@@ -105,6 +105,11 @@ struct boot_params {
   uint8_t _pad9[276];                                           // 0xeec
 } __attribute__((packed));
 
+typedef struct {
+  uint64_t start;
+  uint64_t end;
+} tmr;
+
 struct linux_info {
   uintptr_t linux_info; // PA of linux_info
   uintptr_t bzimage;
@@ -113,6 +118,8 @@ struct linux_info {
   size_t initrd_size;
   size_t vram_size;
   int kit_type;
+  int n_tmrs;
+  tmr tmrs[64];
   char cmdline[2048];
 };
 

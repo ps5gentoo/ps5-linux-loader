@@ -16,6 +16,25 @@ int (*mp3_invoke)(int cmd_id, void *req, void *rsp) = NULL;
 uint64_t g_vbios;
 
 typedef struct {
+  uint64_t flags;
+  uint64_t addr;
+  uint64_t size;
+} __attribute__((packed)) SceSblHvShmTmrPtState;
+
+typedef uint64_t SceSblHvShmTmrIdBmp;
+typedef uint16_t SceSblHvShmTmrPtIdBmp;
+
+typedef struct {
+  uint32_t sig;
+  uint32_t ver;
+  SceSblHvShmTmrPtIdBmp tmrMapPts[64];
+  SceSblHvShmTmrIdBmp tmrOvlpIds[64];
+  SceSblHvShmTmrPtState tmrPtStates[64];
+  uint32_t nmiCounts[16];
+  uint8_t reserved[64];
+} __attribute__((packed)) SceSblHvShm;
+
+typedef struct {
   uint8_t lanenum;
   uint32_t rate;
   uint32_t pad;
@@ -55,6 +74,15 @@ static inline uint64_t vmmcall(uint64_t nr, uint64_t a0, uint64_t a1,
                    : "a"(nr), "b"(a0), "c"(a1), "d"(a2)
                    : "memory");
   return ret;
+}
+
+static uint64_t get_hv_shm(void) {
+  if (args.fw_version >= 0x0500 && args.fw_version < 0x0600) {
+    return 0x62a01000;
+  } else if (args.fw_version >= 0x0600 && args.fw_version < 0x0650) {
+    return 0x62a22000;
+  }
+  return -1;
 }
 
 static int dp_enable_link_phy(int lanenum, int linkrate) {
@@ -108,7 +136,40 @@ static void install_hv_code(void) {
          shellcode_hv_bin_len);
 }
 
+void patch_hv(void) {
+  // Jump to shellcode final identity mapping
+  uint8_t shellcode_jmp[] = {0x48, 0xC7, 0xC0, 0xAA,
+                             0xAA, 0xAA, 0xAA, // mov rax, 0xAAAAAAAA
+                             0xFF, 0xE0};      // jmp rax
+
+  // Update code cave in hv 1:1 region
+  *(uint32_t *)(&shellcode_jmp[3]) = (uint32_t)args.hv_code_cave_pa;
+
+  // Just patch the VMEXIT handler directly, avoiding all checks
+  memcpy((void *)PHYS_TO_DMAP(args.hv_handle_vmexit_pa), shellcode_jmp,
+         sizeof(shellcode_jmp));
+
+  uint8_t shellcode_identity_and_jmp[] = {
+      0x48, 0xB8, 0xAA, 0xAA, 0xAA,
+      0xAA, 0xAA, 0xAA, 0xAA, 0xAA, // movabs rax, 0xAAAAAAAAAAAAAAAA
+      0x0F, 0x22, 0xD8,             // mov    cr3, rax
+      0x48, 0xB8, 0xAA, 0xAA, 0xAA,
+      0xAA, 0xAA, 0xAA, 0xAA, 0xAA, // movabs rax, 0xAAAAAAAAAAAAAAAA
+      0xFF, 0xE0                    // jmp    rax
+  };
+
+  // Update CR3 PA (from config)
+  *(uint64_t *)(&shellcode_identity_and_jmp[2]) = cave_hv_paging;
+  // Update HV shellcode cave
+  *(uint64_t *)(&shellcode_identity_and_jmp[15]) = cave_hv_code;
+
+  // Install shellcode to update CR3 and jump to main HV shellcode
+  memcpy((void *)PHYS_TO_DMAP(args.hv_code_cave_pa), shellcode_identity_and_jmp,
+         sizeof(shellcode_identity_and_jmp));
+}
+
 void boot_linux(void) {
+  patch_hv();
 
   // Common bootloader code
   install_hv_code();
@@ -125,6 +186,20 @@ void boot_linux(void) {
 
   // Copy bzImage and initrd into contiguous memory.
   memcpy(&info, (void *)args.linux_info_va, sizeof(struct linux_info));
+
+  info.n_tmrs = 0;
+  if (args.fw_version >= 0x0500 && args.fw_version < 0x0650) {
+    SceSblHvShm *shm = (SceSblHvShm *)PHYS_TO_DMAP(get_hv_shm());
+
+    for (int i = 0; i < 64; i++) {
+      if (shm->tmrPtStates[i].flags & 1) {
+        info.tmrs[info.n_tmrs].start = shm->tmrPtStates[i].addr;
+        info.tmrs[info.n_tmrs].end = shm->tmrPtStates[i].addr + shm->tmrPtStates[i].size;
+        printf("tmr: %lx-%lx\n", info.tmrs[info.n_tmrs].start, info.tmrs[info.n_tmrs].end);
+        info.n_tmrs++;
+      }
+    }
+  }
 
   uintptr_t bzimage = info.bzimage;
   uintptr_t initrd = info.initrd;
