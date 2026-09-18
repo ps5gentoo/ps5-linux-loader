@@ -12,7 +12,7 @@
 const char *file_paths[] = {
     "/mnt/usb0/",           "/mnt/usb1/",           "/mnt/usb2/",
     "/mnt/usb3/",           "/mnt/usb0/PS5/Linux/", "/mnt/usb1/PS5/Linux/",
-    "/mnt/usb2/PS5/Linux/", "/mnt/usb3/PS5/Linux/",
+    "/mnt/usb2/PS5/Linux/", "/mnt/usb3/PS5/Linux/", "/data/linux/",
 };
 
 long find_and_get_size_of_file(const char *filename, char *found_path);
